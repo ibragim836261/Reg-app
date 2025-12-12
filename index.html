@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Регистрация онлайн</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+    margin: 0;
+    padding: 0;
+}
+header {
+    background: #333;
+    color: white;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.menu-btn {
+    cursor: pointer;
+    font-size: 24px;
+}
+.menu {
+    display: none;
+    position: absolute;
+    top: 50px;
+    right: 10px;
+    background: white;
+    border: 1px solid #ccc;
+    padding: 10px;
+}
+.container {
+    max-width: 400px;
+    background: white;
+    padding: 20px;
+    margin: 40px auto;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+input, button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+button {
+    cursor: pointer;
+    background: #333;
+    color: white;
+}
+#users {
+    margin-top: 20px;
+    display: none;
+}
+#terms {
+    margin-top: 20px;
+    cursor: pointer;
+    color: blue;
+    text-decoration: underline;
+}
+</style>
+</head>
+<body>
+
+<header>
+    <h2>Регистрация</h2>
+    <div class="menu-btn" onclick="toggleMenu()">☰</div>
+</header>
+
+<div class="menu" id="menu">
+    <p>Введите код администратора:</p>
+    <input type="password" id="adminCodeInput">
+    <button onclick="checkAdminCode()">Отправить</button>
+</div>
+
+<div class="container">
+    <h3>Введите данные</h3>
+    <input type="text" id="name" placeholder="Имя">
+    <input type="text" id="surname" placeholder="Фамилия">
+    <input type="text" id="patronymic" placeholder="Отчество">
+    <input type="date" id="birthdate">
+    <input type="text" id="userCode" placeholder="Код (6 разных цифр)">
+    <button onclick="registerUser()">Зарегистрироваться</button>
+
+    <p id="terms" onclick="showTerms()">Условия использования</p>
+    <p id="termsText" style="display:none;">Ваши данные могут просматриваться</p>
+
+    <div id="users">
+        <h3>Список пользователей:</h3>
+        <ul id="userList"></ul>
+    </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+
+// Твой Firebase конфиг
+const firebaseConfig = {
+  apiKey: "AIzaSyB1qlf6zvDD4Hi_lfTNkr1xCtbKn3Rw52Y",
+  authDomain: "registrationcom.firebaseapp.com",
+  projectId: "registrationcom",
+  storageBucket: "registrationcom.firebasestorage.app",
+  messagingSenderId: "145662383422",
+  appId: "1:145662383422:web:4633fcf78e24df7a73886f",
+  measurementId: "G-V1XV1QL5TJ"
+};
+
+// Инициализация Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let users = [];
+
+function toggleMenu() {
+    let menu = document.getElementById("menu");
+    menu.style.display = (menu.style.display === "block") ? "none" : "block";
+}
+
+function showTerms() {
+    let t = document.getElementById("termsText");
+    t.style.display = t.style.display === "none" ? "block" : "none";
+}
+
+async function checkAdminCode() {
+    let code = document.getElementById("adminCodeInput").value;
+    if (code === "67256") {
+        document.getElementById("users").style.display = "block";
+        // Загружаем всех пользователей из Firestore
+        const querySnapshot = await getDocs(collection(db, "users"));
+        const list = document.getElementById("userList");
+        list.innerHTML = "";
+        querySnapshot.forEach((doc) => {
+            const u = doc.data();
+            list.innerHTML += `<li>${u.name} ${u.surname} ${u.patronymic} — ${u.date}</li>`;
+        });
+        alert("Код верный! Данные пользователей загружены.");
+    } else {
+        alert("Неверный код!");
+    }
+}
+
+async function registerUser() {
+    let name = document.getElementById("name").value.trim();
+    let surname = document.getElementById("surname").value.trim();
+    let patronymic = document.getElementById("patronymic").value.trim();
+    let date = document.getElementById("birthdate").value;
+    let code = document.getElementById("userCode").value;
+
+    if (!name || !surname || !patronymic || !date || !code) {
+        alert("Заполните все поля!");
+        return;
+    }
+
+    if (!/^\d{6}$/.test(code)) {
+        alert("Код должен состоять из 6 цифр!");
+        return;
+    }
+
+    let digits = new Set(code);
+    if (digits.size !== 6) {
+        alert("Цифры в коде не должны повторяться!");
+        return;
+    }
+
+    // Сохраняем в Firestore
+    await addDoc(collection(db, "users"), {
+        name,
+        surname,
+        patronymic,
+        date,
+        code
+    });
+
+    alert("Пользователь зарегистрирован!");
+    document.getElementById("name").value = "";
+    document.getElementById("surname").value = "";
+    document.getElementById("patronymic").value = "";
+    document.getElementById("birthdate").value = "";
+    document.getElementById("userCode").value = "";
+}
+</script>
+
+</body>
+</html>
